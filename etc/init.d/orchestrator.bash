@@ -1,11 +1,24 @@
 #!/bin/bash
+#
 # orchestrator daemon
+#
 # chkconfig: 345 20 80
 # description: orchestrator daemon
 # processname: orchestrator
-
+### BEGIN INIT INFO
+# Provides: orchestrator
+# Required-Start: $network $remote_fs
+# Required-Stop: $network $remote_fs
+# Default-Start: 3 4 5
+# Default-Stop: 0 1 2 6
+# Short-Description: orchestrator daemon
+# Description: orchestrator: MySQL replication management and visualization
+### END INIT INFO
 
 # Script credit: http://werxltd.com/wp/2012/01/05/simple-init-d-script-template/
+
+# Source LSB function library.
+. /lib/lsb/init-functions
 
 DAEMON_PATH="/usr/local/orchestrator"
 
