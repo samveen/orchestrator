@@ -11,7 +11,7 @@
 # Required-Stop: $network $remote_fs
 # Default-Start: 3 4 5
 # Default-Stop: 0 1 2 6
-# Short-Description: orchestrator daemon
+# Short-Description: mysql orchestrator daemon
 # Description: orchestrator: MySQL replication management and visualization
 ### END INIT INFO
 
@@ -20,21 +20,22 @@
 # Source function library.
 . /etc/init.d/functions
 
-DAEMON_PATH="/usr/local/orchestrator"
+SERVICENAME=orchestrator
+SCRIPTNAME=/etc/init.d/$SERVICENAME
+DESC="$SERVICENAME: MySQL replication management and visualization"
 
 DAEMON=orchestrator
-DAEMONOPTS="--verbose http"
-
-NAME=orchestrator
-DESC="orchestrator: MySQL replication management and visualization"
-PIDFILE=/var/run/$NAME.pid
-SCRIPTNAME=/etc/init.d/$NAME
+DAEMON_PATH="/usr/local/orchestrator"
+DAEMONOPTS="-verbose http"
+PIDFILE=/var/run/$SERVICENAME.pid
+LOG=/var/log/${SERVICENAME}.log
 
 ulimit -n 16384
 
 # The file /etc/orchestrator_profile can be used to inject pre-service execution
 # scripts, such as exporting variables or whatever. It's yours!
-[ -f /etc/orchestrator_profile ] && . /etc/orchestrator_profile
+PROFILE=/etc/${DAEMON}_profile
+[ -f $PROFILE ] && . $PROFILE
 
 case "$1" in
   start)
