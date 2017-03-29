@@ -15,96 +15,82 @@
 # Description: orchestrator: MySQL replication management and visualization
 ### END INIT INFO
 
-# Script credit: http://werxltd.com/wp/2012/01/05/simple-init-d-script-template/
-
 # Source LSB function library.
 . /lib/lsb/init-functions
 
-DAEMON_PATH="/usr/local/orchestrator"
-
-DAEMON=orchestrator
-DAEMONOPTS="-verbose http"
-
 NAME=orchestrator
 DESC="orchestrator: MySQL replication management and visualization"
+
+exec=/usr/bin/orchestrator
+prog=$(basename $exec)
+OPTS="-verbose http"
+DAEMON_PATH="/usr/share/orchestrator"
+
 PIDFILE=/var/run/$NAME.pid
-SCRIPTNAME=/etc/init.d/$NAME
+DAEMONOPTS="--pidfile=$PIDFILE"
 
 ulimit -n 16384
 
-# The file /etc/orchestrator_profile can be used to inject pre-service execution
+# The orchestrator profile file can be used to inject pre-service execution
 # scripts, such as exporting variables or whatever. It's yours!
-[ -f /etc/orchestrator_profile ] && . /etc/orchestrator_profile
+PROFILE=/etc/${NAME}/orchestrator_profile
+[ -f $PROFILE -a -r $PROFILE ] && . $PROFILE
 
-case "$1" in
-  start)
+RETVAL=0
+
+start() {
     printf "%-50s" "Starting $NAME..."
     cd $DAEMON_PATH
-    PID=$(./$DAEMON $DAEMONOPTS &>>/var/log/${NAME}.log & echo $!)
-    #echo "Saving PID" $PID " to " $PIDFILE
-    if [ -z $PID ]; then
-      printf "%s\n" "Fail"
-      exit 1
-    elif [ -z "$(ps axf | awk '{print $1}' | grep ${PID})" ]; then
-      printf "%s\n" "Fail"
-      exit 1
-    else
-      echo $PID > $PIDFILE
-      printf "%s\n" "Ok"
-    fi
-  ;;
-  status)
-    printf "%-50s" "Checking $NAME..."
-    if [ -f $PIDFILE ]; then
-      PID=$(cat $PIDFILE)
-      if [ -z "$(ps axf | awk '{print $1}' | grep ${PID})" ]; then
-        printf "%s\n" "Process dead but pidfile exists"
-        exit 1
-      else
-        echo "Running"
-      fi
-    else
-      printf "%s\n" "Service not running"
-      exit 1
-    fi
-  ;;
-  stop)
+    start_daemon $DAEMONOPTS "$exec $OPTS &>>/var/log/${NAME}.log"
+    RETVAL=$?
+}
+
+status() {
+    local pid
+
+    pid=`pidofproc -p $PIDFILE $prog`
+    RETVAL=$?
+    case $RETVAL in
+        0)
+        echo "$prog is running ($pid)."
+        ;;
+        *)
+        echo "$prog is not running." >&2
+        ;;
+    esac
+}
+
+stop() {
     printf "%-50s" "Stopping $NAME"
-    PID=$(cat $PIDFILE)
-    cd $DAEMON_PATH
-    if [ -f $PIDFILE ]; then
-      kill -TERM $PID
-      rm -f $PIDFILE
-      # Wait for orchestrator to stop otherwise restart may fail.
-      # (The newly restarted process may be unable to bind to the
-      # currently bound socket.)
-      while ps -p $PID >/dev/null 2>&1; do
-        printf "."
-        sleep 1
-      done
-      printf "\n"
-      printf "Ok\n"
-    else
-      printf "%s\n" "pidfile not found"
-      exit 1
-    fi
-  ;;
-  restart)
-    $0 stop
-    $0 start
-  ;;
-  reload)
-    PID=$(cat $PIDFILE)
-    cd $DAEMON_PATH
-    if [ -f $PIDFILE ]; then
-      kill -HUP $PID
-      printf "%s\n" "Ok"
-    else
-      printf "%s\n" "pidfile not found"
-      exit 1
-    fi
-	;;
-  *)
-    echo "Usage: $0 {status|start|stop|restart|reload}"
-    exit 1
+    killproc -p $PIDFILE $prog -TERM
+    RETVAL=$?
+}
+
+reload() {
+    printf "%-50s" "Reloading $NAME"
+    killproc -p $PIDFILE $prog -HUP
+    RETVAL=$?
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    reload)
+        reload
+        ;;
+    *)
+        echo "Usage: $0 {status|start|stop|restart|reload}"
+        RETVAL=-1
 esac
+exit $RETVAL
