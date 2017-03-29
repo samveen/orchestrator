@@ -23,7 +23,7 @@
 DAEMON_PATH="/usr/local/orchestrator"
 
 DAEMON=orchestrator
-DAEMONOPTS="--verbose http"
+DAEMONOPTS="-verbose http"
 
 NAME=orchestrator
 DESC="orchestrator: MySQL replication management and visualization"
